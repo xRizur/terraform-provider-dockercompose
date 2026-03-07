@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, '**']
+  # push:
+  #   branches: [main, '**']
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  lint:
+    name: "Lint & Static Analysis"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+  unit-tests:
+    name: "Unit Tests & Coverage"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run Unit Tests (Coverage & JUnit)
+        run: |
+          gotestsum --junitfile junit-unit.xml -- -coverprofile=coverage.out -short ./...
+
+      - name: Publish Unit Test Results (PR comment)
+        if: always() && github.event_name == 'pull_request'
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: "junit-unit.xml"
+          check_name: Unit Test Results
+          comment_title: Unit Test Results
+          comment_mode: always
+          fail_on: test failures
+          report_individual_runs: false
+
+  e2e:
+    name: "Acceptance Tests (Docker & Terraform)"
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run Acceptance (E2E) Tests
+        env:
+          TF_ACC: "1"
+        run: |
+          # Docker is pre-installed on ubuntu-latest
+          gotestsum --junitfile junit-e2e.xml -- -timeout 20m -v ./internal/provider/...
+
+      - name: Publish E2E Test Results (PR comment)
+        if: always() && github.event_name == 'pull_request'
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: junit-e2e.xml
+          check_name: E2E Test Results
+          comment_title: E2E Test Results
+          comment_mode: always
+          fail_on: test failures
+          report_individual_runs: false
