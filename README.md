@@ -1,19 +1,19 @@
 # Terraform Provider for Docker Compose
 
-A Terraform provider that manages Docker Compose stacks — define multi-container applications in HCL with full lifecycle management, remote host support, and comprehensive Docker Compose spec coverage.
+A Terraform provider that manages Docker Compose stacks - define multi-container applications in HCL with full lifecycle management, remote host support, and comprehensive Docker Compose spec coverage.
 
 ## Features
 
-- **Remote host support** — connect via SSH, TCP, or Unix socket (like the Docker provider)
+- **Remote host support** - connect via SSH, TCP, or Unix socket (like the Docker provider)
 - **Two resource types**:
-  - `dockercompose_stack` — full HCL-modeled services, networks, volumes, configs, secrets
-  - `dockercompose_project` — use existing `docker-compose.yml` files or inline YAML
-- **Comprehensive service config** — ports, volumes, environment, healthchecks, deploy resources, logging, security options, sysctls, devices, and 50+ other Docker Compose fields
-- **Network & volume management** — drivers, IPAM, external references, labels, driver options
-- **Docker configs & secrets** — top-level config/secret definitions
-- **Project isolation** — each stack gets its own project name (`-p`) and directory
-- **State management** — generated YAML stored in Terraform state, auto-restored if deleted from disk
-- **Import support** — import existing stacks with `terraform import`
+  - `dockercompose_stack` - full HCL-modeled services, networks, volumes, configs, secrets
+  - `dockercompose_project` - use existing `docker-compose.yml` files or inline YAML
+- **Comprehensive service config** - ports, volumes, environment, healthchecks, deploy resources, logging, security options, sysctls, devices, and 50+ other Docker Compose fields
+- **Network & volume management** - drivers, IPAM, external references, labels, driver options
+- **Docker configs & secrets** - top-level config/secret definitions
+- **Project isolation** - each stack gets its own project name (`-p`) and directory
+- **State management** - generated YAML stored in Terraform state, auto-restored if deleted from disk
+- **Import support** - import existing stacks with `terraform import`
 
 ## Quick Start
 
@@ -324,7 +324,7 @@ resource "dockercompose_project" "dynamic" {
 | `compose_yaml` | string | Inline YAML content (conflicts with compose_file) |
 | `remove_volumes_on_destroy` | bool | Remove volumes on destroy |
 | `yaml_sha256` | string | (computed) SHA256 of YAML content |
-| `container` | list | (computed) Container runtime info — same schema as `dockercompose_stack` |
+| `container` | list | (computed) Container runtime info - same schema as `dockercompose_stack` |
 
 ## How It Works
 
@@ -355,7 +355,7 @@ go build -o terraform-provider-dockercompose.exe   # Windows
 
 ## Local Testing (dev override)
 
-The fastest way to test the provider locally — no registry, no `terraform init`.
+The fastest way to test the provider locally - no registry, no `terraform init`.
 
 ### Prerequisites
 
@@ -374,7 +374,7 @@ go build -o terraform-provider-dockercompose .        # Linux / macOS
 
 ### 2. Create the Terraform CLI config with dev_overrides
 
-**Windows** — create `%APPDATA%\terraform.rc` (typically `C:\Users\<you>\AppData\Roaming\terraform.rc`):
+**Windows** - create `%APPDATA%\terraform.rc` (typically `C:\Users\<you>\AppData\Roaming\terraform.rc`):
 
 ```hcl
 provider_installation {
@@ -385,7 +385,7 @@ provider_installation {
 }
 ```
 
-**Linux / macOS** — create `~/.terraformrc`:
+**Linux / macOS** - create `~/.terraformrc`:
 
 ```hcl
 provider_installation {
@@ -435,7 +435,7 @@ docker compose -p demo ps
 terraform destroy -auto-approve
 ```
 
-> The warning "Provider development overrides are in effect" is expected — it means Terraform is using your local build.
+> The warning "Provider development overrides are in effect" is expected - it means Terraform is using your local build.
 
 ### 5. Running the test suite
 
@@ -461,10 +461,10 @@ go tool cover -html=coverage.out
 ## Breaking Changes from v1
 
 - **Provider config**: New `host`, `docker_binary`, `project_directory` fields
-- **Service block**: Changed from `TypeSet` to `TypeList` — service order in HCL matters
+- **Service block**: Changed from `TypeSet` to `TypeList` - service order in HCL matters
 - **Healthcheck**: `healthcheck_test` is now a list (was a string)
 - **Replicas**: Moved from `replicas` direct field to deploy-aware config
-- **YAML generation**: Uses struct marshaling instead of Go templates — output format may differ
+- **YAML generation**: Uses struct marshaling instead of Go templates - output format may differ
 - **Project isolation**: Each stack now uses `-p name` for Docker Compose project isolation
 - **New resource**: `dockercompose_project` for raw YAML workflows
 - Existing v1 state must be destroyed and recreated
