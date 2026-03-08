@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"terraform-provider-dockercompose/internal/docker"
+	"github.com/xRizur/terraform-provider-dockercompose/internal/docker"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )

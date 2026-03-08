@@ -1,4 +1,4 @@
-module terraform-provider-dockercompose
+module github.com/xRizur/terraform-provider-dockercompose
 
 go 1.24.1
 
