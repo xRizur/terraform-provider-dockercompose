@@ -21,7 +21,7 @@ A Terraform provider that manages Docker Compose stacks - define multi-container
 terraform {
   required_providers {
     dockercompose = {
-      source = "macie/dockercompose"
+      source = "xRizur/dockercompose"
     }
   }
 }
@@ -379,7 +379,7 @@ go build -o terraform-provider-dockercompose .        # Linux / macOS
 ```hcl
 provider_installation {
   dev_overrides {
-    "registry.terraform.io/macie/dockercompose" = "C:\\Users\\<you>\\path\\to\\DockerCompose-Terraform-Provider"
+    "registry.terraform.io/xRizur/dockercompose" = "C:\\Users\\<you>\\path\\to\\DockerCompose-Terraform-Provider"
   }
   direct {}
 }
@@ -390,7 +390,7 @@ provider_installation {
 ```hcl
 provider_installation {
   dev_overrides {
-    "registry.terraform.io/macie/dockercompose" = "/home/<you>/path/to/DockerCompose-Terraform-Provider"
+    "registry.terraform.io/xRizur/dockercompose" = "/home/<you>/path/to/DockerCompose-Terraform-Provider"
   }
   direct {}
 }
@@ -404,7 +404,7 @@ provider_installation {
 terraform {
   required_providers {
     dockercompose = {
-      source = "macie/dockercompose"
+      source = "xRizur/dockercompose"
     }
   }
 }

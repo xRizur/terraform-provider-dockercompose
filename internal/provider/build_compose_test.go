@@ -2,7 +2,7 @@ package provider
 
 import (
 	"strings"
-	"terraform-provider-dockercompose/internal/docker"
+	"github.com/xRizur/terraform-provider-dockercompose/internal/docker"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"

@@ -56,9 +56,9 @@ changelog:
 
 release:
   github:
-    owner: maciek
-    name: DockerCompose-Terraform-Provider
+    owner: xRizur
+    name: terraform-provider-dockercompose
 
   # Publish to GitHub Releases
-  draft: true
+  draft: false
   prerelease: auto
