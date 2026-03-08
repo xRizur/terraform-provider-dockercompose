@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     dockercompose = {
-      source = "local/dockercompose"
+      source = "xRizur/dockercompose"
     }
   }
 }
