@@ -78,7 +78,9 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 	content, err := os.ReadFile(composeFilePath)
 	if err == nil {
 		hash := fmt.Sprintf("%x", sha256.Sum256(content))
-		d.Set("yaml_sha256", hash)
+		if setErr := d.Set("yaml_sha256", hash); setErr != nil {
+			return fmt.Errorf("error setting yaml_sha256: %s", setErr)
+		}
 	}
 
 	return resourceProjectRead(d, m)

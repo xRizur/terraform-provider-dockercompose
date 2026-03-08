@@ -2,6 +2,7 @@ package provider
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -220,13 +221,17 @@ func readContainerInfo(d *schema.ResourceData, client *docker.DockerClient, stac
 	// Get container list via docker compose ps --format json
 	psJSON, err := client.ComposePSJSON(stackName, composeFilePath)
 	if err != nil {
-		d.Set("container", []interface{}{})
+		if setErr := d.Set("container", []interface{}{}); setErr != nil {
+			return fmt.Errorf("error clearing container attribute: %s", setErr)
+		}
 		return nil
 	}
 
 	entries, err := parseComposePSJSON(psJSON)
 	if err != nil || len(entries) == 0 {
-		d.Set("container", []interface{}{})
+		if setErr := d.Set("container", []interface{}{}); setErr != nil {
+			return fmt.Errorf("error clearing container attribute: %s", setErr)
+		}
 		return nil
 	}
 

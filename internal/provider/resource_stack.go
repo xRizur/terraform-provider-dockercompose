@@ -257,8 +257,12 @@ func resourceStackCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	d.SetId(stackName)
-	d.Set("compose_yaml", string(yamlBytes))
-	d.Set("compose_file_path", composeFilePath)
+	if err := d.Set("compose_yaml", string(yamlBytes)); err != nil {
+		return fmt.Errorf("error setting compose_yaml: %s", err)
+	}
+	if err := d.Set("compose_file_path", composeFilePath); err != nil {
+		return fmt.Errorf("error setting compose_file_path: %s", err)
+	}
 
 	return resourceStackRead(d, m)
 }
@@ -276,7 +280,9 @@ func resourceStackRead(d *schema.ResourceData, m interface{}) error {
 	if _, err := os.Stat(composeFilePath); os.IsNotExist(err) {
 		yamlContent := d.Get("compose_yaml").(string)
 		if yamlContent != "" {
-			os.MkdirAll(filepath.Dir(composeFilePath), 0755)
+			if mkdirErr := os.MkdirAll(filepath.Dir(composeFilePath), 0755); mkdirErr != nil {
+				return fmt.Errorf("error creating compose file directory: %s", mkdirErr)
+			}
 			if writeErr := os.WriteFile(composeFilePath, []byte(yamlContent), 0644); writeErr != nil {
 				return fmt.Errorf("error restoring compose file from state: %s", writeErr)
 			}
