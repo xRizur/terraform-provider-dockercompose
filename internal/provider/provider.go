@@ -42,6 +42,9 @@ func Provider() *schema.Provider {
 			"dockercompose_stack":   resourceComposeStack(),
 			"dockercompose_project": resourceComposeProject(),
 		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"dockercompose_project": dataSourceComposeProject(),
+		},
 		ConfigureFunc: providerConfigure,
 	}
 }
