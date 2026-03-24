@@ -52,6 +52,17 @@ func TestProviderResources(t *testing.T) {
 	}
 }
 
+func TestProviderDataSources(t *testing.T) {
+	p := Provider()
+
+	expectedDataSources := []string{"dockercompose_project"}
+	for _, name := range expectedDataSources {
+		if _, ok := p.DataSourcesMap[name]; !ok {
+			t.Errorf("provider missing data source %q", name)
+		}
+	}
+}
+
 func TestProviderHasConfigureFunc(t *testing.T) {
 	p := Provider()
 	// Check for presence of configuration function
