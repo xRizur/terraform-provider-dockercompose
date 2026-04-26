@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars and edit:
+# cp terraform.tfvars.example terraform.tfvars
+#
+# ssh_host = "deploy@vps.example.com"
+# ssh_host = "deploy@1.2.3.4:2222"   # custom SSH port
+# app_port = 80
+# remote_project_dir = "/opt/terraform-compose"
