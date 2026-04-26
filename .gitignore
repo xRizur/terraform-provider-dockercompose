@@ -1,0 +1,37 @@
+# GPG keys (used for goreleaser signing — keep out of repo!)
+*.key
+*.gpg
+*.asc
+
+# Compiled binaries
+terraform-provider-dockercompose
+terraform-provider-dockercompose.exe
+*.exe
+dist/
+
+# Go
+*.test
+*.out
+coverage.out
+coverage.html
+vendor/
+
+# Terraform local state / dev
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+crash.log
+crash.*.log
+*.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store

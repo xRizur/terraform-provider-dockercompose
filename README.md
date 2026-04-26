@@ -1,6 +1,37 @@
 # Terraform Provider for Docker Compose
 
-A Terraform provider that manages Docker Compose stacks - define multi-container applications in HCL with full lifecycle management, remote host support, and comprehensive Docker Compose spec coverage.
+[![Terraform Registry](https://img.shields.io/badge/registry-xRizur%2Fdockercompose-844FBA?logo=terraform)](https://registry.terraform.io/providers/xRizur/dockercompose/latest)
+[![Release](https://img.shields.io/github/v/release/xRizur/terraform-provider-dockercompose?label=release)](https://github.com/xRizur/terraform-provider-dockercompose/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/xRizur/terraform-provider-dockercompose)](go.mod)
+[![Stars](https://img.shields.io/github/stars/xRizur/terraform-provider-dockercompose?style=social)](https://github.com/xRizur/terraform-provider-dockercompose/stargazers)
+
+> Manage Docker Compose stacks as Terraform resources. Define multi-container applications in HCL, deploy them to local or remote Docker hosts via SSH/TCP/Unix socket, and get full lifecycle management with comprehensive Docker Compose v3 spec coverage.
+
+## Why this provider?
+
+The official Docker provider (`kreuzwerker/docker`) treats every container, network, and volume as a separate Terraform resource. That works, but it loses the Docker Compose mental model — you end up reimplementing service dependencies, healthcheck wait logic, and compose-style lifecycle by hand.
+
+This provider takes the opposite approach: **a stack is one resource**. You write HCL that mirrors `docker-compose.yml` 1:1, and the provider runs `docker compose up -d` under the hood — preserving Compose's dependency graph, healthcheck-aware startup, and project isolation.
+
+| | `xRizur/dockercompose` | `kreuzwerker/docker` |
+|---|---|---|
+| Mental model | Compose stacks | Individual containers |
+| Service dependencies | `depends_on` (Compose-native) | Manual `depends_on` between TF resources |
+| Healthcheck-aware startup | Native (Compose handles it) | Manual provisioner workarounds |
+| Existing `docker-compose.yml` reuse | Drop-in via `dockercompose_project` | Rewrite as TF resources |
+| Lines of HCL for 5-service stack | ~50 | ~200+ |
+| Remote hosts (SSH/TCP) | Yes | Yes |
+
+**Pick this provider when:** you already think in Compose, you want to migrate `docker-compose.yml` files into IaC without rewriting them, or you're managing self-hosted apps / homelab / dev environments where Compose is the natural unit of deployment.
+
+## Use cases
+
+- **Homelab and self-hosted apps** — manage your `*arr` stack, Nextcloud, Vaultwarden, Pi-hole etc. as code, with version-pinned image tags and reproducible deployments.
+- **Edge / single-node production** — deploy to a remote VPS over SSH (`ssh://deploy@server`) without installing Terraform, Docker Swarm, or Kubernetes on the box.
+- **Ephemeral CI/CD environments** — spin up full app stacks per branch or PR, tear them down on merge.
+- **Dev environments as code** — give every developer a one-command (`terraform apply`) local stack that matches production.
+- **Migrating legacy Compose files** — point `dockercompose_project` at an existing `docker-compose.yml` and you're done; no rewrite required.
 
 ## Features
 
@@ -468,4 +499,20 @@ go tool cover -html=coverage.out
 - **Project isolation**: Each stack now uses `-p name` for Docker Compose project isolation
 - **New resource**: `dockercompose_project` for raw YAML workflows
 - Existing v1 state must be destroyed and recreated
+
+## Contributing
+
+Issues and PRs welcome. If you hit a missing Compose field or a behavior that diverges from `docker compose`, open an issue with a minimal reproducer (one stack, the field, expected vs actual). For larger changes, open a discussion first so we can align on direction.
+
+## License
+
+[MIT](LICENSE) — use it however you want, attribution appreciated.
+
+## Links
+
+- **Terraform Registry**: <https://registry.terraform.io/providers/xRizur/dockercompose/latest>
+- **Issue tracker**: <https://github.com/xRizur/terraform-provider-dockercompose/issues>
+- **Releases / changelog**: <https://github.com/xRizur/terraform-provider-dockercompose/releases>
+
+If this provider saved you time, a star on GitHub helps others discover it.
 
