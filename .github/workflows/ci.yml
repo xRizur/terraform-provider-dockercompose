@@ -73,12 +73,19 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.0"
+          terraform_wrapper: false
+
       - name: Install gotestsum
         run: go install gotest.tools/gotestsum@latest
 
       - name: Run Acceptance (E2E) Tests
         env:
           TF_ACC: "1"
+          TF_ACC_TERRAFORM_PATH: /usr/local/bin/terraform
         run: |
           # Docker is pre-installed on ubuntu-latest
           gotestsum --junitfile junit-e2e.xml -- -timeout 20m -v ./internal/provider/...
