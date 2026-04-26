@@ -85,9 +85,8 @@ jobs:
       - name: Run Acceptance (E2E) Tests
         env:
           TF_ACC: "1"
-          TF_ACC_TERRAFORM_PATH: /usr/local/bin/terraform
         run: |
-          # Docker is pre-installed on ubuntu-latest
+          which terraform && terraform version
           gotestsum --junitfile junit-e2e.xml -- -timeout 20m -v ./internal/provider/...
 
       - name: Publish E2E Test Results (PR comment)
