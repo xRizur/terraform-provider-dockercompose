@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"os"
@@ -20,6 +21,10 @@ func resourceComposeProject() *schema.Resource {
 		Read:   resourceProjectRead,
 		Update: resourceProjectUpdate,
 		Delete: resourceProjectDelete,
+
+		Importer: &schema.ResourceImporter{
+			StateContext: importProject,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -53,6 +58,18 @@ func resourceComposeProject() *schema.Resource {
 				Description: "SHA256 hash of the compose YAML for change detection.",
 			},
 
+			// Per-resource host override (conflicts with connection)
+			"host": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"ssh_connection"},
+				Description:   "Docker daemon host URL. Overrides provider host when set. Conflicts with ssh_connection.",
+			},
+
+			// Per-resource SSH connection block (conflicts with host)
+			"ssh_connection": connectionSchema(),
+
 			// Container runtime info (populated after apply)
 			"container": containerSchema(),
 		},
@@ -60,8 +77,16 @@ func resourceComposeProject() *schema.Resource {
 }
 
 func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*docker.DockerClient)
+	providerClient := m.(*docker.DockerClient)
 	stackName := d.Get("name").(string)
+
+	resourceHost := d.Get("host").(string)
+	conn := connectionFromResourceData(d)
+	host, err := docker.EffectiveHost(resourceHost, conn, providerClient.Host)
+	if err != nil {
+		return err
+	}
+	client := docker.ClientForHost(host, providerClient)
 
 	composeFilePath, err := resolveProjectComposeFile(d, client, stackName)
 	if err != nil {
@@ -72,7 +97,11 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("error starting project: %s", err)
 	}
 
-	d.SetId(stackName)
+	if resourceHost != "" || conn != nil {
+		d.SetId(host + "/" + stackName)
+	} else {
+		d.SetId(stackName)
+	}
 
 	// Compute hash for change detection
 	content, err := os.ReadFile(composeFilePath)
@@ -87,8 +116,23 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*docker.DockerClient)
-	stackName := d.Id()
+	providerClient := m.(*docker.DockerClient)
+
+	resourceHost := d.Get("host").(string)
+	conn := connectionFromResourceData(d)
+	host, err := docker.EffectiveHost(resourceHost, conn, providerClient.Host)
+	if err != nil {
+		d.SetId("")
+		return nil
+	}
+	client := docker.ClientForHost(host, providerClient)
+
+	// Derive the stack name from the resource ID (strip optional host prefix)
+	id := d.Id()
+	stackName := id
+	if idx := strings.LastIndex(id, "/"); idx > 0 {
+		stackName = id[idx+1:]
+	}
 
 	composeFilePath, err := resolveProjectComposeFile(d, client, stackName)
 	if err != nil {
@@ -111,8 +155,23 @@ func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
-	client := m.(*docker.DockerClient)
-	stackName := d.Id()
+	providerClient := m.(*docker.DockerClient)
+
+	resourceHost := d.Get("host").(string)
+	conn := connectionFromResourceData(d)
+	host, err := docker.EffectiveHost(resourceHost, conn, providerClient.Host)
+	if err != nil {
+		return err
+	}
+	client := docker.ClientForHost(host, providerClient)
+
+	// Derive the stack name from the resource ID (strip optional host prefix)
+	id := d.Id()
+	stackName := id
+	if idx := strings.LastIndex(id, "/"); idx > 0 {
+		stackName = id[idx+1:]
+	}
+
 	removeVolumes := d.Get("remove_volumes_on_destroy").(bool)
 
 	composeFilePath, err := resolveProjectComposeFile(d, client, stackName)
@@ -132,6 +191,32 @@ func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
 
 	return nil
 }
+
+// importProject handles terraform import for dockercompose_project.
+// Accepts IDs in two forms:
+//   - "projectName"                   → uses provider host
+//   - "ssh://user@host:port/projName" → sets resource-level host
+func importProject(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+	id := d.Id()
+	if idx := strings.LastIndex(id, "/"); idx > 0 {
+		host := id[:idx]
+		name := id[idx+1:]
+		if err := d.Set("host", host); err != nil {
+			return nil, fmt.Errorf("error setting host during import: %s", err)
+		}
+		if err := d.Set("name", name); err != nil {
+			return nil, fmt.Errorf("error setting name during import: %s", err)
+		}
+		d.SetId(id)
+	} else {
+		if err := d.Set("name", id); err != nil {
+			return nil, fmt.Errorf("error setting name during import: %s", err)
+		}
+		d.SetId(id)
+	}
+	return []*schema.ResourceData{d}, nil
+}
+
 
 // resolveProjectComposeFile determines the compose file path from either compose_file or compose_yaml.
 func resolveProjectComposeFile(d *schema.ResourceData, client *docker.DockerClient, stackName string) (string, error) {
