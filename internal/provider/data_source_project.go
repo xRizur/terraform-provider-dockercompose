@@ -29,6 +29,19 @@ func dataSourceComposeProject() *schema.Resource {
 				Computed:    true,
 				Description: "Overall project status: running, partial, or stopped.",
 			},
+
+			// Per-resource host override (conflicts with connection)
+			"host": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"ssh_connection"},
+				Description:   "Docker daemon host URL. Overrides provider host when set. Conflicts with ssh_connection.",
+			},
+
+			// Per-resource SSH connection block (conflicts with host)
+			"ssh_connection": connectionSchema(),
+
 			"container": containerSchema(),
 		},
 	}
@@ -39,8 +52,16 @@ func dataSourceComposeProject() *schema.Resource {
 func dataSourceProjectReadContext(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	client := m.(*docker.DockerClient)
+	providerClient := m.(*docker.DockerClient)
 	projectName := d.Get("name").(string)
+
+	resourceHost := d.Get("host").(string)
+	conn := connectionFromResourceData(d)
+	host, err := docker.EffectiveHost(resourceHost, conn, providerClient.Host)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	client := docker.ClientForHost(host, providerClient)
 
 	// Query containers via docker compose ps --format json
 	psJSON, err := client.ComposePSJSON(projectName, "")

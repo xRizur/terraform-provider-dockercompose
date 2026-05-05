@@ -56,6 +56,18 @@ func resourceComposeStack() *schema.Resource {
 			// Container runtime info (populated after apply)
 			"container": containerSchema(),
 
+			// Per-resource host override (conflicts with connection)
+			"host": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"ssh_connection"},
+				Description:   "Docker daemon host URL. Overrides provider host when set. Conflicts with ssh_connection.",
+			},
+
+			// Per-resource SSH connection block (conflicts with host)
+			"ssh_connection": connectionSchema(),
+
 			// Service definitions
 			"service": {
 				Type:        schema.TypeList,
@@ -224,8 +236,16 @@ func volumeSchema() map[string]*schema.Schema {
 // ============================================================
 
 func resourceStackCreate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*docker.DockerClient)
+	providerClient := m.(*docker.DockerClient)
 	stackName := d.Get("name").(string)
+
+	resourceHost := d.Get("host").(string)
+	conn := connectionFromResourceData(d)
+	host, err := docker.EffectiveHost(resourceHost, conn, providerClient.Host)
+	if err != nil {
+		return err
+	}
+	client := docker.ClientForHost(host, providerClient)
 
 	// Build the ComposeFile struct from Terraform config
 	cf := buildComposeFile(d)
@@ -256,7 +276,7 @@ func resourceStackCreate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("error starting stack: %s", err)
 	}
 
-	d.SetId(stackName)
+	d.SetId(docker.ComposeResourceID(host, stackName))
 	if err := d.Set("compose_yaml", string(yamlBytes)); err != nil {
 		return fmt.Errorf("error setting compose_yaml: %s", err)
 	}
@@ -268,8 +288,17 @@ func resourceStackCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceStackRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*docker.DockerClient)
-	stackName := d.Id()
+	providerClient := m.(*docker.DockerClient)
+
+	resourceHost := d.Get("host").(string)
+	conn := connectionFromResourceData(d)
+	host, err := docker.EffectiveHost(resourceHost, conn, providerClient.Host)
+	if err != nil {
+		return err
+	}
+	client := docker.ClientForHost(host, providerClient)
+
+	_, stackName := docker.ParseComposeResourceID(d.Id())
 
 	composeFilePath := d.Get("compose_file_path").(string)
 	if composeFilePath == "" {
@@ -310,8 +339,18 @@ func resourceStackUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceStackDelete(d *schema.ResourceData, m interface{}) error {
-	client := m.(*docker.DockerClient)
-	stackName := d.Id()
+	providerClient := m.(*docker.DockerClient)
+
+	resourceHost := d.Get("host").(string)
+	conn := connectionFromResourceData(d)
+	host, err := docker.EffectiveHost(resourceHost, conn, providerClient.Host)
+	if err != nil {
+		return err
+	}
+	client := docker.ClientForHost(host, providerClient)
+
+	_, stackName := docker.ParseComposeResourceID(d.Id())
+
 	removeVolumes := d.Get("remove_volumes_on_destroy").(bool)
 
 	composeFilePath := d.Get("compose_file_path").(string)
