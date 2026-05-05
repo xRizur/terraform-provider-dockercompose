@@ -51,6 +51,23 @@ output "container_count" {
 
 - `name` (String) Docker Compose project name to look up.
 
+### Optional
+
+- `host` (String) Full Docker daemon host URL (e.g. `ssh://agent@10.0.0.1`). Overrides the provider-level host. Conflicts with `ssh_connection`.
+- `ssh_connection` (Block, max 1) SSH connection parameters used to build the Docker host URL. Authentication uses the system SSH agent. Conflicts with `host`. (see [below for nested schema](#nestedblock--ssh_connection))
+
+<a id="nestedblock--ssh_connection"></a>
+### Nested Schema for `ssh_connection`
+
+Required:
+
+- `host` (String) Remote host address.
+
+Optional:
+
+- `port` (Number) SSH port. Defaults to 22.
+- `user` (String) SSH username.
+
 ### Read-Only
 
 - `container` (List of Object) Runtime information about containers in the stack (populated after apply). Sorted by service name. (see [below for nested schema](#nestedatt--container))

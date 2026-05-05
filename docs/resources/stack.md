@@ -98,11 +98,25 @@ resource "dockercompose_stack" "monitoring" {
 ### Optional
 
 - `config` (Block List) Config definitions (Docker configs). (see [below for nested schema](#nestedblock--config))
+- `host` (String) Full Docker daemon host URL (e.g. `ssh://agent@10.0.0.1`). Overrides the provider-level host for this resource. Conflicts with `ssh_connection`.
 - `network` (Block List) Network definitions. (see [below for nested schema](#nestedblock--network))
 - `remove_volumes_on_destroy` (Boolean) Whether to remove named volumes on destroy (docker compose down -v).
 - `secret` (Block List) Secret definitions (Docker secrets). (see [below for nested schema](#nestedblock--secret))
+- `ssh_connection` (Block, max 1) SSH connection parameters used to build the Docker host URL. Authentication uses the system SSH agent. Conflicts with `host`. (see [below for nested schema](#nestedblock--ssh_connection))
 - `volume` (Block List) Volume definitions. (see [below for nested schema](#nestedblock--volume))
 - `working_dir` (String) Working directory for the stack. If not set, uses <project_directory>/<name>/.
+
+<a id="nestedblock--ssh_connection"></a>
+### Nested Schema for `ssh_connection`
+
+Required:
+
+- `host` (String) Remote host address.
+
+Optional:
+
+- `port` (Number) SSH port. Defaults to 22.
+- `user` (String) SSH username.
 
 ### Read-Only
 
