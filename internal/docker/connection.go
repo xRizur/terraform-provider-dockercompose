@@ -1,44 +1,33 @@
 package docker
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
-// ConnectionConfig holds SSH (or other protocol) connection parameters for
-// establishing a Docker host URL dynamically from resource attributes.
+// ConnectionConfig holds SSH connection parameters for establishing a Docker
+// host URL from resource attributes. Only SSH is supported.
 type ConnectionConfig struct {
-	Type           string
-	Host           string
-	User           string
-	Port           int
-	PrivateKey     string
-	PrivateKeyFile string
-	KnownHostsFile string
-	BastionHost    string
-	BastionUser    string
-	BastionPort    int
+	Host string
+	User string
+	Port int
 }
 
-// DockerHostURL builds a Docker host URL from the connection config.
-// Only type "ssh" is fully supported; other types fall through to the same format.
+// DockerHostURL builds an ssh:// Docker host URL from the connection config.
 func (c *ConnectionConfig) DockerHostURL() string {
-	t := c.Type
-	if t == "" {
-		t = "ssh"
-	}
 	p := c.Port
 	if p == 0 {
 		p = 22
 	}
 	if c.User != "" {
-		return fmt.Sprintf("%s://%s@%s:%d", t, c.User, c.Host, p)
+		return fmt.Sprintf("ssh://%s@%s:%d", c.User, c.Host, p)
 	}
-	return fmt.Sprintf("%s://%s:%d", t, c.Host, p)
+	return fmt.Sprintf("ssh://%s:%d", c.Host, p)
 }
 
 // EffectiveHost resolves the Docker host URL using the priority:
 //
-//	resource.connection > resource.host > provider.host
-//
-// Returns an error if no host can be determined.
+//	resource.ssh_connection > resource.host > provider.host
 func EffectiveHost(resourceHost string, conn *ConnectionConfig, providerHost string) (string, error) {
 	if conn != nil {
 		return conn.DockerHostURL(), nil
@@ -49,7 +38,7 @@ func EffectiveHost(resourceHost string, conn *ConnectionConfig, providerHost str
 	if providerHost != "" {
 		return providerHost, nil
 	}
-	return "", fmt.Errorf("no Docker host configured: set provider.host, resource.host, or resource.connection")
+	return "", fmt.Errorf("no Docker host configured: set provider.host, resource.host, or resource.ssh_connection")
 }
 
 // ClientForHost returns a new DockerClient with the given host URL, copying
@@ -60,4 +49,25 @@ func ClientForHost(host string, base *DockerClient) *DockerClient {
 		Binary:           base.Binary,
 		ProjectDirectory: base.ProjectDirectory,
 	}
+}
+
+// ComposeResourceID builds the Terraform resource ID for a dockercompose
+// resource. When a resource-level host is set the ID encodes both so that
+// resources on different nodes are distinguishable in state.
+func ComposeResourceID(host, projectName string) string {
+	if host == "" {
+		return projectName
+	}
+	return host + "/" + projectName
+}
+
+// ParseComposeResourceID splits a resource ID back into host and project name.
+// The host portion is only present when the ID was built with ComposeResourceID
+// and a non-empty host (i.e. it contains "://").
+func ParseComposeResourceID(id string) (host, projectName string) {
+	idx := strings.LastIndex(id, "/")
+	if idx > 0 && strings.Contains(id[:idx], "://") {
+		return id[:idx], id[idx+1:]
+	}
+	return "", id
 }

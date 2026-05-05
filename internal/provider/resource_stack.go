@@ -276,11 +276,7 @@ func resourceStackCreate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("error starting stack: %s", err)
 	}
 
-	if resourceHost != "" || conn != nil {
-		d.SetId(host + "/" + stackName)
-	} else {
-		d.SetId(stackName)
-	}
+	d.SetId(docker.ComposeResourceID(host, stackName))
 	if err := d.Set("compose_yaml", string(yamlBytes)); err != nil {
 		return fmt.Errorf("error setting compose_yaml: %s", err)
 	}
@@ -298,17 +294,11 @@ func resourceStackRead(d *schema.ResourceData, m interface{}) error {
 	conn := connectionFromResourceData(d)
 	host, err := docker.EffectiveHost(resourceHost, conn, providerClient.Host)
 	if err != nil {
-		d.SetId("")
-		return nil
+		return err
 	}
 	client := docker.ClientForHost(host, providerClient)
 
-	// Derive the stack name from the resource ID (strip optional host prefix)
-	id := d.Id()
-	stackName := id
-	if idx := strings.LastIndex(id, "/"); idx > 0 {
-		stackName = id[idx+1:]
-	}
+	_, stackName := docker.ParseComposeResourceID(d.Id())
 
 	composeFilePath := d.Get("compose_file_path").(string)
 	if composeFilePath == "" {
@@ -359,12 +349,7 @@ func resourceStackDelete(d *schema.ResourceData, m interface{}) error {
 	}
 	client := docker.ClientForHost(host, providerClient)
 
-	// Derive the stack name from the resource ID (strip optional host prefix)
-	id := d.Id()
-	stackName := id
-	if idx := strings.LastIndex(id, "/"); idx > 0 {
-		stackName = id[idx+1:]
-	}
+	_, stackName := docker.ParseComposeResourceID(d.Id())
 
 	removeVolumes := d.Get("remove_volumes_on_destroy").(bool)
 

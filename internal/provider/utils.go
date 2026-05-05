@@ -5,8 +5,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// connectionSchema returns the schema for the optional "connection" block
-// that can be added to any resource or data source.
+// connectionSchema returns the schema for the optional "ssh_connection" block.
+// Only host, user, and port are exposed — the SSH transport itself is handled
+// by the Docker client via the system SSH agent.
 func connectionSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:          schema.TypeList,
@@ -14,26 +15,19 @@ func connectionSchema() *schema.Schema {
 		MaxItems:      1,
 		ForceNew:      true,
 		ConflictsWith: []string{"host"},
-		Description:   "SSH connection settings used to build the Docker host URL. Conflicts with host.",
+		Description:   "SSH connection parameters used to build the Docker host URL. Conflicts with host. Authentication uses the system SSH agent.",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"type":             {Type: schema.TypeString, Optional: true, Default: "ssh", Description: "Connection type. Only 'ssh' is fully supported."},
-				"host":             {Type: schema.TypeString, Required: true, Description: "Remote host address."},
-				"user":             {Type: schema.TypeString, Optional: true, Description: "SSH username."},
-				"port":             {Type: schema.TypeInt, Optional: true, Default: 22, Description: "SSH port. Defaults to 22."},
-				"private_key":      {Type: schema.TypeString, Optional: true, Sensitive: true, Description: "PEM-encoded private key."},
-				"private_key_file": {Type: schema.TypeString, Optional: true, Description: "Path to the private key file."},
-				"known_hosts_file": {Type: schema.TypeString, Optional: true, Description: "Path to a known_hosts file."},
-				"bastion_host":     {Type: schema.TypeString, Optional: true, Description: "Bastion / jump host address."},
-				"bastion_user":     {Type: schema.TypeString, Optional: true, Description: "Bastion SSH username."},
-				"bastion_port":     {Type: schema.TypeInt, Optional: true, Description: "Bastion SSH port."},
+				"host": {Type: schema.TypeString, Required: true, Description: "Remote host address."},
+				"user": {Type: schema.TypeString, Optional: true, Description: "SSH username."},
+				"port": {Type: schema.TypeInt, Optional: true, Default: 22, Description: "SSH port. Defaults to 22."},
 			},
 		},
 	}
 }
 
 // connectionFromResourceData extracts and returns a ConnectionConfig from the
-// "connection" list attribute in resource data. Returns nil if not set.
+// ssh_connection block in resource data. Returns nil if not set.
 func connectionFromResourceData(d *schema.ResourceData) *docker.ConnectionConfig {
 	connList, ok := d.GetOk("ssh_connection")
 	if !ok {
@@ -45,7 +39,6 @@ func connectionFromResourceData(d *schema.ResourceData) *docker.ConnectionConfig
 	}
 	conn := conns[0].(map[string]interface{})
 	cfg := &docker.ConnectionConfig{
-		Type: conn["type"].(string),
 		Host: conn["host"].(string),
 	}
 	if v, ok := conn["user"].(string); ok {
@@ -53,24 +46,6 @@ func connectionFromResourceData(d *schema.ResourceData) *docker.ConnectionConfig
 	}
 	if v, ok := conn["port"].(int); ok {
 		cfg.Port = v
-	}
-	if v, ok := conn["private_key"].(string); ok {
-		cfg.PrivateKey = v
-	}
-	if v, ok := conn["private_key_file"].(string); ok {
-		cfg.PrivateKeyFile = v
-	}
-	if v, ok := conn["known_hosts_file"].(string); ok {
-		cfg.KnownHostsFile = v
-	}
-	if v, ok := conn["bastion_host"].(string); ok {
-		cfg.BastionHost = v
-	}
-	if v, ok := conn["bastion_user"].(string); ok {
-		cfg.BastionUser = v
-	}
-	if v, ok := conn["bastion_port"].(int); ok {
-		cfg.BastionPort = v
 	}
 	return cfg
 }
